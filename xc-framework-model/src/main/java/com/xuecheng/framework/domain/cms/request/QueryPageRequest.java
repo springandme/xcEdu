@@ -2,6 +2,7 @@ package com.xuecheng.framework.domain.cms.request;
 
 import com.xuecheng.framework.model.request.RequestData;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
 
 /**
  * @ClassName QueryPageRequest
@@ -10,6 +11,7 @@ import io.swagger.annotations.ApiModelProperty;
  * @Date 2020/7/5 11:15
  * @Version V1.0
  **/
+@Data
 public class QueryPageRequest extends RequestData {
     //接收页面查询的查询条件
     //站点id
