@@ -5,9 +5,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
@@ -66,8 +64,44 @@ public class CmsPageRepositoryTest {
     }
 
     @Test
-    public void testFindBypageName() {
+    public void testFindByPageName() {
         CmsPage page = cmsPageRepository.findByPageName("10101.html");
         System.out.println(page);
+    }
+
+    //自定义条件查询测试
+    @Test
+    public void testFIndAllByExample() {
+        //分页参数
+        int page = 0;
+        int size = 10;
+        Pageable pageable = PageRequest.of(page, size);
+
+        //T probe -->   条件值对象
+        CmsPage cmsPage = new CmsPage();
+        //要查询5a92141cb00ffc5a448ff1a0站点的页面
+//        cmsPage.setPageId("5a92141cb00ffc5a448ff1a0");
+        //设置模板id条件
+//        cmsPage.setTemplateId("5a925be7b00ffc4b3c1578b5");
+
+        //设置页面别名查询
+        cmsPage.setPageAliase("轮播");
+        /*
+        //ExampleMatcher matcher --> 条件匹配器  无参matching()方法,为精准匹配
+        ExampleMatcher matching = ExampleMatcher.matching();
+        //ExampleMatcher.GenericPropertyMatchers.contains()     包换关键字
+        //startWith()     前缀匹配
+        matching = matching.withMatcher("pageAliase", ExampleMatcher.GenericPropertyMatchers.contains());
+        */
+
+        //链式简介写法
+        ExampleMatcher matching = ExampleMatcher.matching().withMatcher("pageAliase",
+                ExampleMatcher.GenericPropertyMatchers.contains());
+        //定义Example
+        Example<CmsPage> example = Example.of(cmsPage, matching);
+        Page<CmsPage> all = cmsPageRepository.findAll(example, pageable);
+        List<CmsPage> content = all.getContent();
+        System.out.println(content);
+
     }
 }
