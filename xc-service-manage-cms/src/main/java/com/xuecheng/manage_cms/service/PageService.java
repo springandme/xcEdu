@@ -2,7 +2,9 @@ package com.xuecheng.manage_cms.service;
 
 import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.request.QueryPageRequest;
+import com.xuecheng.framework.domain.cms.response.CmsCode;
 import com.xuecheng.framework.domain.cms.response.CmsPageResult;
+import com.xuecheng.framework.exception.ExceptionCast;
 import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
 import com.xuecheng.framework.model.response.QueryResult;
@@ -87,7 +89,7 @@ public class PageService {
      * @Date 2020-07-13 14:15
      * @Param [cmsPage]
      */
-    public CmsPageResult add(CmsPage cmsPage) {
+   /* public CmsPageResult add(CmsPage cmsPage) {
         //校验页面名称,站点Id,页面webPath的唯一性
         //根据页面名称,站点Id,页面webPath去cms_page集合,如果查询到说明页面已经存在,如果查询不到再继续添加.
 
@@ -103,6 +105,41 @@ public class PageService {
         }
         //添加失败!
         return new CmsPageResult(CommonCode.FAIL, null);
+    }*/
+
+    /**
+     * @return com.xuecheng.framework.domain.cms.response.CmsPageResult
+     * @Author liushi
+     * @Description 新增页面
+     * @Date 2020-07-13 14:15
+     * @Param [cmsPage]
+     */
+    public CmsPageResult add(CmsPage cmsPage) {
+        if (cmsPage == null) {
+            //抛出异常,非法参数异常,
+            ExceptionCast.cast(CmsCode.CMS_COURSE_PERVIEWISNULL);
+        }
+
+        //校验页面名称,站点Id,页面webPath的唯一性
+        //根据页面名称,站点Id,页面webPath去cms_page集合,如果查询到说明页面已经存在,如果查询不到再继续添加.
+
+        CmsPage cmsPage1 =
+                cmsPageRepository.findByPageNameAndSiteIdAndPageWebPath(cmsPage.getPageName(), cmsPage.getSiteId(),
+                        cmsPage.getPageWebPath());
+        if (cmsPage1 != null) {
+            //页面已经存在
+            //拖出异常,异常内容就是页面已经存在
+//            throw new CustomException(CommonCode.FAIL);
+            ExceptionCast.cast(CmsCode.CMS_ADDPAGE_EXISTSNAME);
+        }
+        //调用dao新增页面
+        //把主键设置为空,MongoDb会自动生成主键
+        cmsPage.setPageId(null);
+        cmsPageRepository.save(cmsPage);
+        return new CmsPageResult(CommonCode.SUCCESS, cmsPage);
+
+        //添加失败!
+        //return new CmsPageResult(CommonCode.FAIL, null);
     }
 
     /**
