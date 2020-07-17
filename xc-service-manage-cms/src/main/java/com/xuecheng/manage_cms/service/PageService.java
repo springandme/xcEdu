@@ -46,7 +46,8 @@ public class PageService {
         //自定义条件查询
         //定义条件匹配器
         ExampleMatcher exampleMatcher =
-                ExampleMatcher.matching().withMatcher("pageAliase", ExampleMatcher.GenericPropertyMatchers.contains());
+                ExampleMatcher.matching().withMatcher("pageAliase", ExampleMatcher.GenericPropertyMatchers.contains())
+                        .withMatcher("pageName", ExampleMatcher.GenericPropertyMatchers.contains());
         //条件值对象
         CmsPage cmsPage = new CmsPage();
         //设置站点id作为查询条件
@@ -57,9 +58,17 @@ public class PageService {
         if (StringUtils.isNotEmpty(queryPageRequest.getTemplateId())) {
             cmsPage.setTemplateId(queryPageRequest.getTemplateId());
         }
-        //谁知页面别名为查询条件
+        //设置页面别名为查询条件
         if (StringUtils.isNotEmpty(queryPageRequest.getPageAliase())) {
             cmsPage.setPageAliase(queryPageRequest.getPageAliase());
+        }
+        //设置页面名称为查询条件
+        if (StringUtils.isNotEmpty(queryPageRequest.getPageName())) {
+            cmsPage.setPageName((queryPageRequest.getPageName()));
+        }
+        //设置页面类型为查询条件
+        if (StringUtils.isNotEmpty(queryPageRequest.getPageType())) {
+            cmsPage.setPageType(queryPageRequest.getPageType());
         }
         //定义条件对象
         Example<CmsPage> example = Example.of(cmsPage, exampleMatcher);

@@ -21,6 +21,4 @@ public class CustomException extends RuntimeException {
     public ResultCode getResultCode() {
         return resultCode;
     }
-
-
 }
