@@ -1,5 +1,6 @@
 package com.xuecheng.manage_cms.service;
 
+import com.xuecheng.framework.domain.cms.CmsConfig;
 import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.request.QueryPageRequest;
 import com.xuecheng.framework.domain.cms.response.CmsCode;
@@ -9,11 +10,13 @@ import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
 import com.xuecheng.framework.model.response.QueryResult;
 import com.xuecheng.framework.model.response.ResponseResult;
+import com.xuecheng.manage_cms.dao.CmsConfigRepository;
 import com.xuecheng.manage_cms.dao.CmsPageRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
 
@@ -30,6 +33,11 @@ public class PageService {
     @Autowired
     private CmsPageRepository cmsPageRepository;
 
+    @Autowired
+    private CmsConfigRepository cmsConfigRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     /**
      * @return com.xuecheng.framework.model.response.QueryResponseResult
@@ -215,5 +223,20 @@ public class PageService {
             return new ResponseResult(CommonCode.SUCCESS);
         }
         return new ResponseResult(CommonCode.FAIL);
+    }
+
+    /**
+     * @return com.xuecheng.framework.domain.cms.CmsConfig
+     * @Author liushi
+     * @Description 根据id查询CmsConfig
+     * @Date 2020-07-19 13:15
+     * @Param [id]
+     */
+    public CmsConfig getConfigById(String id) {
+        Optional<CmsConfig> one = cmsConfigRepository.findById(id);
+        if (one.isPresent()) {
+            return one.get();
+        }
+        return null;
     }
 }
