@@ -286,7 +286,7 @@ public class PageService {
         }
         //获取页面的模板信息
         String template = this.getTemplateByPageId(pageId);
-        if (template == null) {
+        if (StringUtils.isEmpty(template)) {
             ExceptionCast.cast(CmsCode.CMS_GENERATEHTML_TEMPLATEISNULL);
         }
         //执行静态化
@@ -322,31 +322,6 @@ public class PageService {
         return null;
     }
 
-
-    /**
-     * @return java.util.Map
-     * @Author liushi
-     * @Description 获取数据模型
-     * @Date 2020-07-20 20:15
-     * @Param [pageId]
-     */
-    private Map getModelByPageId(String pageId) {
-        //取出页面的信息
-        CmsPage cmsPage = this.getById(pageId);
-        if (cmsPage == null) {
-            //页面不存在
-            ExceptionCast.cast(CmsCode.CMS_PAGE_NOTEXISTS);
-        }
-        //取出页面的dataUrl
-        String dataUrl = cmsPage.getDataUrl();
-        if (StringUtils.isEmpty(dataUrl)) {
-            //页面dataUrl为空
-            ExceptionCast.cast(CmsCode.CMS_GENERATEHTML_DATAURLISNULL);
-        }
-        //通过restTemplate请求dataUrl获取数据
-        ResponseEntity<Map> forEntity = restTemplate.getForEntity(dataUrl, Map.class);
-        return forEntity.getBody();
-    }
 
     /**
      * @return java.lang.String
@@ -389,5 +364,30 @@ public class PageService {
             }
         }
         return null;
+    }
+
+    /**
+     * @return java.util.Map
+     * @Author liushi
+     * @Description 获取数据模型
+     * @Date 2020-07-20 20:15
+     * @Param [pageId]
+     */
+    private Map getModelByPageId(String pageId) {
+        //取出页面的信息
+        CmsPage cmsPage = this.getById(pageId);
+        if (cmsPage == null) {
+            //页面不存在
+            ExceptionCast.cast(CmsCode.CMS_PAGE_NOTEXISTS);
+        }
+        //取出页面的dataUrl
+        String dataUrl = cmsPage.getDataUrl();
+        if (StringUtils.isEmpty(dataUrl)) {
+            //页面dataUrl为空
+            ExceptionCast.cast(CmsCode.CMS_GENERATEHTML_DATAURLISNULL);
+        }
+        //通过restTemplate请求dataUrl获取数据
+        ResponseEntity<Map> forEntity = restTemplate.getForEntity(dataUrl, Map.class);
+        return forEntity.getBody();
     }
 }
