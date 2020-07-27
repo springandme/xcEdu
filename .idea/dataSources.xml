@@ -7,5 +7,11 @@
       <jdbc-driver>com.dbschema.MongoJdbcDriver</jdbc-driver>
       <jdbc-url>mongodb://localhost:27017/admin</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="xc_course" uuid="f6be8d0d-2eb7-441e-a67a-a8bca908a7d1">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://localhost:3306/xc_course?serverTimezone=Asia/Shanghai</jdbc-url>
+    </data-source>
   </component>
 </project>

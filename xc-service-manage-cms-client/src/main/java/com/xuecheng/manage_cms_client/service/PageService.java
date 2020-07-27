@@ -56,7 +56,7 @@ public class PageService {
     public void savePageToServicePath(String pageId) {
         //根据pageId查询CMSPage
         CmsPage cmsPage = this.findCmsPageById(pageId);
-        //得到html文件的id,从CMSPage中获得htmlFiled内容
+        //先得到html文件的id,从CMSPage中获得htmlFiled内容
         String htmlFileId = cmsPage.getHtmlFileId();
 
         //  1.从gridFS中查询html文件
@@ -84,12 +84,12 @@ public class PageService {
             e.printStackTrace();
         } finally {
             try {
-                inputStream.close();
+                fileOutputStream.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             try {
-                fileOutputStream.close();
+                inputStream.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -100,7 +100,7 @@ public class PageService {
      * 根据文件id从GridFS中查询文件内容
      *
      * @param htmlFileId CMSPage中的字段html的id
-     * @return
+     * @return InputStream
      */
     public InputStream getFileById(String htmlFileId) {
         //  文件对象
