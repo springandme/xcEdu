@@ -1,14 +1,21 @@
 package com.xuecheng.manage_course.service;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.xuecheng.framework.domain.course.CourseBase;
+import com.xuecheng.framework.domain.course.CourseMarket;
 import com.xuecheng.framework.domain.course.Teachplan;
+import com.xuecheng.framework.domain.course.ext.CourseInfo;
 import com.xuecheng.framework.domain.course.ext.TeachplanNode;
+import com.xuecheng.framework.domain.course.request.CourseListRequest;
+import com.xuecheng.framework.domain.course.response.AddCourseResult;
+import com.xuecheng.framework.domain.course.response.CourseCode;
 import com.xuecheng.framework.exception.ExceptionCast;
 import com.xuecheng.framework.model.response.CommonCode;
+import com.xuecheng.framework.model.response.QueryResponseResult;
+import com.xuecheng.framework.model.response.QueryResult;
 import com.xuecheng.framework.model.response.ResponseResult;
-import com.xuecheng.manage_course.dao.CourseBaseRepository;
-import com.xuecheng.manage_course.dao.TeachPlanRepository;
-import com.xuecheng.manage_course.dao.TeachplanMapper;
+import com.xuecheng.manage_course.dao.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +44,11 @@ public class CourseService {
     @Autowired
     private CourseBaseRepository courseBaseRepository;
 
+    @Autowired
+    private CourseMapper courseMapper;
+
+    @Autowired
+    private CourseMarketRepository courseMarketRepository;
 
     /**
      * 查询课程计划
@@ -127,5 +139,151 @@ public class CourseService {
         }
         //返回根节点id
         return teachplanList.get(0).getId();
+    }
+
+
+    /**
+     * 课程列表查询,并且带有分页效果
+     * time:7.28没有处理条件查询,和图片查询
+     *
+     * @param page              页码,从1开始
+     * @param size              每页显示的几率
+     * @param courseListRequest 查询条件
+     * @return QueryResponseResult
+     */
+    public QueryResponseResult<CourseInfo> findCourseList(int page, int size, CourseListRequest courseListRequest) {
+        if (courseListRequest == null) {
+            courseListRequest = new CourseListRequest();
+        }
+        if (page <= 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
+        PageHelper.startPage(page, size);
+        Page<CourseInfo> courseBasePage = courseMapper.findCourseList(courseListRequest);
+        QueryResult<CourseInfo> queryResult = new QueryResult<>();
+        //数据列表
+        queryResult.setList(courseBasePage.getResult());
+        //数据总记录数
+        queryResult.setTotal(courseBasePage.getTotal());
+
+        return new QueryResponseResult<>(CommonCode.SUCCESS, queryResult);
+    }
+
+
+    /**
+     * 添加课程基本信息
+     *
+     * @param courseBase 基本课程信息
+     * @return AddCourseResult
+     */
+    @Transactional
+    public AddCourseResult addCourseResult(CourseBase courseBase) {
+        //bug日志: 使用了StringUtils.isEmpty(courseBase.getId())进行校验,导致前台传入的数据被拦住了
+        //  所以导致了使用了 接口测试工具Swagger可以传入成功,这是因为填写的数据含有id,而前台传入数据没有id,所会被拦住
+        if (courseBase == null) {
+            ExceptionCast.cast(CommonCode.INVALID_PARAM);
+        }
+        //课程状态默认为未发布
+        courseBase.setStatus("202001");
+        courseBaseRepository.save(courseBase);
+        return new AddCourseResult(CommonCode.SUCCESS, courseBase.getId());
+    }
+
+
+    /**
+     * 获取课程基础信息
+     *
+     * @param courseId 课程基本信息id
+     * @return CourseBase
+     * @throws RuntimeException 不清楚
+     */
+    public CourseBase getCourseBaseById(String courseId) throws RuntimeException {
+        if (StringUtils.isEmpty(courseId)) {
+            ExceptionCast.cast(CourseCode.COURSE_PUBLISH_COURSEIDISNULL);
+        }
+        Optional<CourseBase> one = courseBaseRepository.findById(courseId);
+        if (one.isPresent()) {
+            return one.get();
+        }
+        return null;
+    }
+
+
+    /**
+     * 更新课程基础信息
+     *
+     * @param courseBase 基本课程信息
+     * @return ResponseResult
+     */
+    @Transactional
+    public ResponseResult updateCourseBase(String id, CourseBase courseBase) {
+        CourseBase one = this.getCourseBaseById(id);
+        if (one == null) {
+            //跑出异常
+            ExceptionCast.cast(CourseCode.COURSE_PUBLISH_COURSEBASEISNULL);
+        }
+        //修改课程信息
+        one.setName(courseBase.getName());
+        one.setMt(courseBase.getMt());
+        one.setSt(courseBase.getSt());
+        one.setGrade(courseBase.getGrade());
+        one.setStudymodel(courseBase.getStudymodel());
+        one.setUsers(courseBase.getUsers());
+        one.setDescription(courseBase.getDescription());
+        courseBaseRepository.save(one);
+
+        return new ResponseResult(CommonCode.SUCCESS);
+    }
+
+
+    /**
+     * 根据课程id查询课程营销信息
+     *
+     * @param courseId 课程id
+     * @return CourseMarket
+     */
+    public CourseMarket getCourseMarketById(String courseId) {
+        if (StringUtils.isEmpty(courseId)) {
+            ExceptionCast.cast(CourseCode.COURSE_PUBLISH_COURSEIDISNULL);
+        }
+        Optional<CourseMarket> one = courseMarketRepository.findById(courseId);
+        if (one.isPresent()) {
+            return one.get();
+        }
+        return null;
+    }
+
+
+    /**
+     * 更新课程营销信息
+     * 先查询课程营销，如果存在则更新信息，否则添加课程营销信息的方法
+     *
+     * @param id           课程id
+     * @param courseMarket 课程营销信息
+     * @return ResponseResult
+     */
+    @Transactional
+    public CourseMarket updateCourseMarket(String id, CourseMarket courseMarket) {
+        CourseMarket one = this.getCourseMarketById(id);
+        if (one != null) {
+            //修改课程营销基本信息
+            one.setCharge(courseMarket.getCharge());
+            one.setStartTime(courseMarket.getStartTime());//课程有效期，开始时间
+            one.setEndTime(courseMarket.getEndTime());//课程有效期，结束时间
+            one.setPrice(courseMarket.getPrice());
+            one.setQq(courseMarket.getQq());
+            one.setValid(courseMarket.getValid());
+        } else {
+            //添加课程营销信息
+            one = new CourseMarket();
+            BeanUtils.copyProperties(courseMarket, one);
+            //设置课程id
+            one.setId(id);
+        }
+        courseMarketRepository.save(one);
+        return one;
     }
 }
