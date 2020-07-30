@@ -4,6 +4,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.xuecheng.framework.domain.course.CourseBase;
 import com.xuecheng.framework.domain.course.CourseMarket;
+import com.xuecheng.framework.domain.course.CoursePic;
 import com.xuecheng.framework.domain.course.Teachplan;
 import com.xuecheng.framework.domain.course.ext.CourseInfo;
 import com.xuecheng.framework.domain.course.ext.TeachplanNode;
@@ -49,6 +50,9 @@ public class CourseService {
 
     @Autowired
     private CourseMarketRepository courseMarketRepository;
+
+    @Autowired
+    private CoursePicRepository coursePicRepository;
 
     /**
      * 查询课程计划
@@ -285,5 +289,68 @@ public class CourseService {
         }
         courseMarketRepository.save(one);
         return one;
+    }
+
+
+    /**
+     * 向课程管理数据添加课程图片的关联信息
+     *
+     * @param courseId 课程id
+     * @param pic      图片id
+     * @return ResponseResult
+     */
+    @Transactional
+    public ResponseResult addCoursePic(String courseId, String pic) {
+        if (StringUtils.isEmpty(courseId)) {
+            ExceptionCast.cast(CommonCode.INVALID_PARAM);
+        }
+        //课程图片信息
+        CoursePic coursePic = null;
+        //先查询图片
+        Optional<CoursePic> one = coursePicRepository.findById(courseId);
+        if (one.isPresent()) {
+            coursePic = one.get();
+        }
+        if (coursePic == null) {
+            coursePic = new CoursePic();
+        }
+
+        coursePic.setCourseid(courseId);
+        coursePic.setPic(pic);
+        coursePicRepository.save(coursePic);
+
+        return new ResponseResult(CommonCode.SUCCESS);
+    }
+
+
+    /**
+     * 根据课程id查询课程的图片信息
+     *
+     * @param courseId 课程id
+     * @return CoursePic
+     */
+    public CoursePic getCoursePic(String courseId) {
+        Optional<CoursePic> one = coursePicRepository.findById(courseId);
+        if (one.isPresent()) {
+            return one.get();
+        }
+        return null;
+    }
+
+
+    /**
+     * 根据课程id去删除课程图片信息
+     *
+     * @param courseId 课程id
+     * @return ResponseResult
+     */
+    @Transactional
+    public ResponseResult deleteCoursePic(String courseId) {
+        //执行删除
+        long result = coursePicRepository.deleteByCourseid(courseId);
+        if (result > 0) {
+            return new ResponseResult(CommonCode.SUCCESS);
+        }
+        return new ResponseResult(CommonCode.FAIL);
     }
 }
