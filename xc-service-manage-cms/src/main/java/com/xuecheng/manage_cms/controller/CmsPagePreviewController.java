@@ -23,13 +23,14 @@ public class CmsPagePreviewController extends BaseController {
     PageService pageService;
 
     //页面预览
-    @RequestMapping(value="/cms/preview/{pageId}",method = RequestMethod.GET)
+    @RequestMapping(value = "/cms/preview/{pageId}", method = RequestMethod.GET)
     public void preview(@PathVariable("pageId") String pageId) throws IOException {
         //执行静态化
         String pageHtml = pageService.getPageHtml(pageId);
         //通过response对象将内容输出
         ServletOutputStream outputStream = response.getOutputStream();
-
+        // 由于Nginx先请求cms课程预览功能得到HTML页面,在解析界面中的试试标签,这里必须保证cms页面预览返回的Content-Type为text/html;charset=utf-8
+        response.setHeader("Content-type", "text/html;charset=utf-8");
         outputStream.write(pageHtml.getBytes("utf-8"));
 
     }

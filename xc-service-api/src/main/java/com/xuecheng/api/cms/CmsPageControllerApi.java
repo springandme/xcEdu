@@ -39,4 +39,9 @@ public interface CmsPageControllerApi {
     //页面发布
     @ApiOperation("页面发布")
     ResponseResult post(String pageId);
+
+
+    //保存页面,没有就添加,有了更新
+    @ApiOperation("保存发布")
+    CmsPageResult save(CmsPage cmsPage);
 }

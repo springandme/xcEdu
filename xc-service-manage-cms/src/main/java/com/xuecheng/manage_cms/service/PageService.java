@@ -481,4 +481,21 @@ public class PageService {
     }
 
 
+    /**
+     * 保存页面,有就更新,没有则添加
+     *
+     * @param cmsPage 页面信息
+     * @return CmsPageResult
+     */
+    public CmsPageResult save(CmsPage cmsPage) {
+        //判断页面是否存在
+        CmsPage one =
+                cmsPageRepository.findByPageNameAndSiteIdAndPageWebPath(cmsPage.getPageName(), cmsPage.getSiteId(),
+                        cmsPage.getPageWebPath());
+        if (one != null) {
+            //进行更新
+            return this.update(one.getPageId(), one);
+        }
+        return add(cmsPage);
+    }
 }
