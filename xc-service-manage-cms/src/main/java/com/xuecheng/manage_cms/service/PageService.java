@@ -6,10 +6,12 @@ import com.mongodb.client.gridfs.GridFSDownloadStream;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import com.xuecheng.framework.domain.cms.CmsConfig;
 import com.xuecheng.framework.domain.cms.CmsPage;
+import com.xuecheng.framework.domain.cms.CmsSite;
 import com.xuecheng.framework.domain.cms.CmsTemplate;
 import com.xuecheng.framework.domain.cms.request.QueryPageRequest;
 import com.xuecheng.framework.domain.cms.response.CmsCode;
 import com.xuecheng.framework.domain.cms.response.CmsPageResult;
+import com.xuecheng.framework.domain.cms.response.CmsPostPageResult;
 import com.xuecheng.framework.exception.ExceptionCast;
 import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
@@ -18,6 +20,7 @@ import com.xuecheng.framework.model.response.ResponseResult;
 import com.xuecheng.manage_cms.config.RabbitmqConfig;
 import com.xuecheng.manage_cms.dao.CmsConfigRepository;
 import com.xuecheng.manage_cms.dao.CmsPageRepository;
+import com.xuecheng.manage_cms.dao.CmsSiteRepository;
 import com.xuecheng.manage_cms.dao.CmsTemplateRepository;
 import freemarker.cache.StringTemplateLoader;
 import freemarker.template.Configuration;
@@ -62,6 +65,9 @@ public class PageService {
 
     @Autowired
     private CmsTemplateRepository cmsTemplateRepository;
+
+    @Autowired
+    private CmsSiteRepository cmsSiteRepository;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -497,5 +503,54 @@ public class PageService {
             return this.update(one.getPageId(), one);
         }
         return add(cmsPage);
+    }
+
+    /**
+     * 一键发布页面,为课程管理服务调用
+     *
+     * @param cmsPage 页面信息
+     * @return CmsPostPageResult
+     */
+    public CmsPostPageResult postPageQuick(CmsPage cmsPage) {
+
+        //将页面信息存储到[MongoDB数据库]cms_Page集合中
+        CmsPageResult cmsPageResult = this.save(cmsPage);
+        if (!cmsPageResult.isSuccess()) {
+            ExceptionCast.cast(CommonCode.FAIL);
+        }
+        //得到页面id,页面发布需要一个id
+        CmsPage resultCmsPage = cmsPageResult.getCmsPage();
+        String pageId = cmsPageResult.getCmsPage().getPageId();
+
+        //执行页面发布([this.post(pageId)]先静态化,保存到GridFs,再向MQ发送消息)
+        ResponseResult responseResult = this.post(pageId);
+        if (!responseResult.isSuccess()) {
+            ExceptionCast.cast(CommonCode.FAIL);
+        }
+
+        //拼接url   页面 Url = cmsSite.siteDomain + cmsSite.siteWebPath + cmsPage.pageWebPath + cmsPage.pageName
+        //得到站点id
+        String siteId = resultCmsPage.getSiteId();
+        //得到站点信息
+        CmsSite cmsSite = this.findCmsSiteById(siteId);
+        String pageUrl =
+                cmsSite.getSiteDomain() + cmsSite.getSiteWebPath() + resultCmsPage.getPageWebPath() + resultCmsPage.getPageName();
+
+        return new CmsPostPageResult(CommonCode.SUCCESS, pageUrl);
+    }
+
+
+    /**
+     * 根据站点id查询站点信息
+     *
+     * @param siteId 站点ID
+     * @return CmsSite
+     */
+    public CmsSite findCmsSiteById(String siteId) {
+        Optional<CmsSite> optional = cmsSiteRepository.findById(siteId);
+        if (optional.isPresent()) {
+            return optional.get();
+        }
+        return null;
     }
 }
