@@ -1,14 +1,12 @@
 package com.xuecheng.manage_course.service;
 
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.xuecheng.framework.domain.cms.CmsPage;
 import com.xuecheng.framework.domain.cms.response.CmsPageResult;
 import com.xuecheng.framework.domain.cms.response.CmsPostPageResult;
-import com.xuecheng.framework.domain.course.CourseBase;
-import com.xuecheng.framework.domain.course.CourseMarket;
-import com.xuecheng.framework.domain.course.CoursePic;
-import com.xuecheng.framework.domain.course.Teachplan;
+import com.xuecheng.framework.domain.course.*;
 import com.xuecheng.framework.domain.course.ext.CourseInfo;
 import com.xuecheng.framework.domain.course.ext.CourseView;
 import com.xuecheng.framework.domain.course.ext.TeachplanNode;
@@ -30,6 +28,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,6 +60,9 @@ public class CourseService {
 
     @Autowired
     private CoursePicRepository coursePicRepository;
+
+    @Autowired
+    private CoursePubRepository coursePubRepository;
 
     @Autowired
     private CmsPageClient cmsPageClient;
@@ -515,13 +518,87 @@ public class CourseService {
         }
 
         //保存课程索引信息
-
+        //新建一个coursePub对象
+        CoursePub coursePub = this.createCoursePub(courseId);
+        //将coursePub对象保存到数据库
+        this.saveCoursePub(courseId, coursePub);
         //缓存课程信息
 
         //得到页面的url
         String pageUrl = postPageResult.getPageUrl();
 
         return new CoursePublishResult(CommonCode.SUCCESS, pageUrl);
+    }
+
+
+    /**
+     * 将coursePub对象保存到数据库
+     *
+     * @param courseId  课程id
+     * @param coursePub coursePub
+     * @return CoursePub
+     */
+    private CoursePub saveCoursePub(String courseId, CoursePub coursePub) {
+        CoursePub coursePubNew = null;
+        //根据课程id查询coursePub
+        Optional<CoursePub> one = coursePubRepository.findById(courseId);
+        if (one.isPresent()) {
+            //查询就更新信息
+            coursePubNew = one.get();
+        } else {
+            //没有查询,新建一个coursePub对象,来保存信息
+            coursePubNew = new CoursePub();
+        }
+        //将coursePub对象中的信息保存到coursePubNew中
+        BeanUtils.copyProperties(coursePub, coursePubNew);
+        coursePubNew.setId(courseId);
+        //设置时间戳,给LogStash使用
+        coursePubNew.setTimestamp(new Date());
+        //设置发布时间
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+        String date = simpleDateFormat.format(new Date());
+        coursePubNew.setPubTime(date);
+        //保存信息
+        coursePubRepository.save(coursePubNew);
+
+        return coursePubNew;
+    }
+
+
+    /**
+     * 创建CoursePub对象,
+     *
+     * @param courseId 课程id
+     * @return CoursePub
+     */
+    private CoursePub createCoursePub(String courseId) {
+        CoursePub coursePub = new CoursePub();
+        //根据课程id查询course_base
+        Optional<CourseBase> baseOptional = courseBaseRepository.findById(courseId);
+        if (baseOptional.isPresent()) {
+            CourseBase courseBase = baseOptional.get();
+            //将courseBase属性拷贝到CoursePub
+            BeanUtils.copyProperties(courseBase, coursePub);
+        }
+        //根据课程id查询课程图片
+        Optional<CoursePic> picOptional = coursePicRepository.findById(courseId);
+        if (picOptional.isPresent()) {
+            CoursePic coursePic = picOptional.get();
+            BeanUtils.copyProperties(coursePic, coursePub);
+        }
+        //根据课程id查询课程营销信息
+        Optional<CourseMarket> marketOptional = courseMarketRepository.findById(courseId);
+        if (marketOptional.isPresent()) {
+            CourseMarket courseMarket = marketOptional.get();
+            BeanUtils.copyProperties(courseMarket, coursePub);
+        }
+        //根据课程id查询课程计划信息
+        TeachplanNode teachplanNode = teachplanMapper.selectList(courseId);
+        String jsonString = JSON.toJSONString(teachplanNode);
+        //将课程计划信息json串保存到coursePub中
+        coursePub.setTeachplan(jsonString);
+        //返回
+        return coursePub;
     }
 
     //

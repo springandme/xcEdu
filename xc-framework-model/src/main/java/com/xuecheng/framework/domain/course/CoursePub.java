@@ -14,7 +14,7 @@ import java.util.Date;
 @Data
 @ToString
 @Entity
-@Table(name="course_pub")
+@Table(name = "course_pub")
 @GenericGenerator(name = "jpa-assigned", strategy = "assigned")
 public class CoursePub implements Serializable {
     private static final long serialVersionUID = -916357110051689487L;
@@ -38,7 +38,11 @@ public class CoursePub implements Serializable {
     private Float price;
     private Float price_old;
     private String expires;
+    @Column(name = "start_time")
+    private Date startTime;
+    @Column(name = "end_time")
+    private Date endTime;
     private String teachplan;//课程计划
-    @Column(name="pub_time")
+    @Column(name = "pub_time")
     private String pubTime;//课程发布时间
 }
