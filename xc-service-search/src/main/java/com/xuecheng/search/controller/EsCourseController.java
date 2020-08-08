@@ -12,24 +12,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * @ClassName EsCourseController
- * @Description TODO
- * @Author liushi
- * @Date 2020/8/5 9:54
- * @Version V1.0
+ * @author Administrator
+ * @version 1.0
  **/
 @RestController
 @RequestMapping("/search/course")
 public class EsCourseController implements EsCourseControllerApi {
-
     @Autowired
-    private EsCourseService esCourseService;
-
+    EsCourseService esCourseService;
 
     @Override
-    @GetMapping("/list/{page}/{size}")
-    public QueryResponseResult<CoursePub> findList(@PathVariable("page") int page, @PathVariable("size") int size,
-                                                   CourseSearchParam courseSearchParam) {
-        return esCourseService.findList(page, size, courseSearchParam);
+    @GetMapping(value="/list/{page}/{size}")
+    public QueryResponseResult<CoursePub> list(@PathVariable("page") int page,@PathVariable("size") int size, CourseSearchParam courseSearchParam) {
+        return esCourseService.list(page,size,courseSearchParam);
     }
 }

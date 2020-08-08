@@ -6,17 +6,12 @@ import com.xuecheng.framework.model.response.QueryResponseResult;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
-@Api(value = "课程搜索", description = "基于ES构建的课程搜索API", tags = {"课程搜索"})
+/**
+ * Created by Administrator.
+ */
+@Api(value = "课程搜索", description = "课程搜索", tags = {"课程搜索"})
 public interface EsCourseControllerApi {
-
-    /**
-     * 搜索课程信息
-     *
-     * @param page              页码
-     * @param size              每页显示记录
-     * @param courseSearchParam 查询条件
-     * @return QueryResponseResult<CoursePub>
-     */
+    //搜索课程信息
     @ApiOperation("课程综合搜索")
-    QueryResponseResult<CoursePub> findList(int page, int size, CourseSearchParam courseSearchParam);
+    QueryResponseResult<CoursePub> list(int page, int size, CourseSearchParam courseSearchParam);
 }
