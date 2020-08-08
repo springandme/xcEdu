@@ -1,0 +1,24 @@
+{
+  "properties": [
+    {
+      "name": "xuecheng.fastdfs.connect_timeout_in_seconds",
+      "type": "java.lang.String",
+      "description": "Description for xuecheng.fastdfs.connect_timeout_in_seconds."
+    },
+    {
+      "name": "xuecheng.fastdfs.tracker_servers",
+      "type": "java.lang.String",
+      "description": "Description for xuecheng.fastdfs.tracker_servers."
+    },
+    {
+      "name": "xuecheng.fastdfs.charset",
+      "type": "java.lang.String",
+      "description": "Description for xuecheng.fastdfs.charset."
+    },
+    {
+      "name": "xuecheng.fastdfs.network_timeout_in_seconds",
+      "type": "java.lang.String",
+      "description": "Description for xuecheng.fastdfs.network_timeout_in_seconds."
+    }
+  ]
+}
