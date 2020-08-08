@@ -31,5 +31,7 @@ public class RestTemplateTest {
                         Map.class);
         Map body = forEntity.getBody();
         System.out.println(body);
+
+
     }
 }
