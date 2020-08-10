@@ -1,14 +1,18 @@
 package com.xuecheng.manage_media.service;
 
+import com.alibaba.fastjson.JSON;
 import com.xuecheng.framework.domain.media.MediaFile;
 import com.xuecheng.framework.domain.media.response.CheckChunkResult;
 import com.xuecheng.framework.domain.media.response.MediaCode;
 import com.xuecheng.framework.exception.ExceptionCast;
 import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.ResponseResult;
+import com.xuecheng.manage_media.config.RabbitMQConfig;
 import com.xuecheng.manage_media.dao.MediaFileRepository;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,20 +32,28 @@ public class MediaUploadService {
 
     @Value("${xc-service-manage-media.upload-location}")
     String upload_location;
+    //视频处理路由
+    @Value("${xc-service-manage-media.mq.routingkey-media-video}")
+    public String routingkey_media_video;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     //得到文件所属目录路径
-    private String getFileFolderPath(String fileMd5){
-        return  upload_location + fileMd5.substring(0,1) + "/" + fileMd5.substring(1,2) + "/" + fileMd5 + "/";
+    private String getFileFolderPath(String fileMd5) {
+        return upload_location + fileMd5.substring(0, 1) + "/" + fileMd5.substring(1, 2) + "/" + fileMd5 + "/";
     }
+
     //得到文件的路径
-    private String getFilePath(String fileMd5,String fileExt){
-        return upload_location + fileMd5.substring(0,1) + "/" + fileMd5.substring(1,2) + "/" + fileMd5 + "/" + fileMd5 + "." +fileExt;
+    private String getFilePath(String fileMd5, String fileExt) {
+        return upload_location + fileMd5.substring(0, 1) + "/" + fileMd5.substring(1, 2) + "/" + fileMd5 + "/" + fileMd5 + "." + fileExt;
     }
 
     //得到块文件所属目录路径
-    private String getChunkFileFolderPath(String fileMd5){
-        return  upload_location + fileMd5.substring(0,1) + "/" + fileMd5.substring(1,2) + "/" + fileMd5 + "/chunk/";
+    private String getChunkFileFolderPath(String fileMd5) {
+        return upload_location + fileMd5.substring(0, 1) + "/" + fileMd5.substring(1, 2) + "/" + fileMd5 + "/chunk/";
     }
+
     /**
      * 文件上传前的注册，检查文件是否存在
      * 根据文件md5得到文件路径
@@ -50,6 +62,7 @@ public class MediaUploadService {
      * 二级目录：md5的第二个字符
      * 三级目录：md5
      * 文件名：md5+文件扩展名
+     *
      * @param fileMd5 文件md5值
      * @param fileExt 文件扩展名
      * @return 文件路径
@@ -60,20 +73,20 @@ public class MediaUploadService {
         //文件所属目录的路径
         String fileFolderPath = this.getFileFolderPath(fileMd5);
         //文件的路径
-        String filePath =this.getFilePath(fileMd5,fileExt);
+        String filePath = this.getFilePath(fileMd5, fileExt);
         File file = new File(filePath);
         //文件是否存在
         boolean exists = file.exists();
 
         //2 检查文件信息在mongodb中是否存在
         Optional<MediaFile> optional = mediaFileRepository.findById(fileMd5);
-        if(exists && optional.isPresent()){
+        if (exists && optional.isPresent()) {
             //文件存在
             ExceptionCast.cast(MediaCode.UPLOAD_FILE_REGISTER_EXIST);
         }
         //文件不存在时作一些准备工作，检查文件所在目录是否存在，如果不存在则创建
         File fileFolder = new File(fileFolderPath);
-        if(!fileFolder.exists()){
+        if (!fileFolder.exists()) {
             fileFolder.mkdirs();
         }
 
@@ -83,11 +96,10 @@ public class MediaUploadService {
     //分块检查
 
     /**
-     *
-     * @param fileMd5 文件md5
-     * @param chunk 块的下标
+     * @param fileMd5   文件md5
+     * @param chunk     块的下标
      * @param chunkSize 块的大小
-     * @return
+     * @return CheckChunkResult
      */
     public CheckChunkResult checkchunk(String fileMd5, Integer chunk, Integer chunkSize) {
         //检查分块文件是否存在
@@ -95,15 +107,16 @@ public class MediaUploadService {
         String chunkFileFolderPath = this.getChunkFileFolderPath(fileMd5);
         //块文件
         File chunkFile = new File(chunkFileFolderPath + chunk);
-        if(chunkFile.exists()){
+        if (chunkFile.exists()) {
             //块文件存在
-            return new CheckChunkResult(CommonCode.SUCCESS,true);
-        }else{
+            return new CheckChunkResult(CommonCode.SUCCESS, true);
+        } else {
             //块文件不存在
-            return new CheckChunkResult(CommonCode.SUCCESS,false);
+            return new CheckChunkResult(CommonCode.SUCCESS, false);
         }
 
     }
+
     //上传分块
     public ResponseResult uploadchunk(MultipartFile file, String fileMd5, Integer chunk) {
         //检查分块目录，如果不存在则要自动创建
@@ -114,19 +127,19 @@ public class MediaUploadService {
 
         File chunkFileFolder = new File(chunkFileFolderPath);
         //如果不存在则要自动创建
-        if(!chunkFileFolder.exists()){
+        if (!chunkFileFolder.exists()) {
             chunkFileFolder.mkdirs();
         }
         //得到上传文件的输入流
         InputStream inputStream = null;
-        FileOutputStream outputStream  =null;
+        FileOutputStream outputStream = null;
         try {
             inputStream = file.getInputStream();
             outputStream = new FileOutputStream(new File(chunkFilePath));
-            IOUtils.copy(inputStream,outputStream);
+            IOUtils.copy(inputStream, outputStream);
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             try {
                 inputStream.close();
             } catch (IOException e) {
@@ -159,14 +172,14 @@ public class MediaUploadService {
 
         //执行合并
         mergeFile = this.mergeFile(fileList, mergeFile);
-        if(mergeFile == null){
+        if (mergeFile == null) {
             //合并文件失败
             ExceptionCast.cast(MediaCode.MERGE_FILE_FAIL);
         }
 
-        //2、校验文件的md5值是否和前端传入的md5一到
+        //2、校验文件的md5值是否和前端传入的md5一致
         boolean checkFileMd5 = this.checkFileMd5(mergeFile, fileMd5);
-        if(!checkFileMd5){
+        if (!checkFileMd5) {
             //校验文件失败
             ExceptionCast.cast(MediaCode.MERGE_FILE_CHECKFAIL);
         }
@@ -174,9 +187,9 @@ public class MediaUploadService {
         MediaFile mediaFile = new MediaFile();
         mediaFile.setFileId(fileMd5);
         mediaFile.setFileOriginalName(fileName);
-        mediaFile.setFileName(fileMd5 + "." +fileExt);
-        //文件路径保存相对路径
-        String filePath1 = fileMd5.substring(0,1) + "/" + fileMd5.substring(1,2) + "/" + fileMd5 + "/" + fileMd5 + "." +fileExt;
+        mediaFile.setFileName(fileMd5 + "." + fileExt);
+        //文件路径保存相对路径   2020年8月10日16:35:53,修改合并文件的相对路径
+        String filePath1 = fileMd5.substring(0, 1) + "/" + fileMd5.substring(1, 2) + "/" + fileMd5 + "/";
         mediaFile.setFilePath(filePath1);
         mediaFile.setFileSize(fileSize);
         mediaFile.setUploadTime(new Date());
@@ -185,12 +198,43 @@ public class MediaUploadService {
         //状态为上传成功
         mediaFile.setFileStatus("301002");
         mediaFileRepository.save(mediaFile);
+        // 向mq发送视频处理消息
+        this.sendProcessVideoMsg(mediaFile.getFileId());
+
+        return new ResponseResult(CommonCode.SUCCESS);
+    }
+
+
+    /**
+     * 发送视频处理消息
+     *
+     * @param mediaId 文件id
+     * @return ResponseResult
+     */
+    public ResponseResult sendProcessVideoMsg(String mediaId) {
+        //查询数据库mediaFile
+        Optional<MediaFile> optional = mediaFileRepository.findById(mediaId);
+        if (!optional.isPresent()) {
+            ExceptionCast.cast(CommonCode.FAIL);
+        }
+
+        // 构建消息内容
+        Map<String, String> map = new HashMap<>();
+        map.put("mediaId", mediaId);
+        String toJSONString = JSON.toJSONString(map);
+        // 向mq发送视频处理消息
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EX_MEDIA_PROCESSTASK, routingkey_media_video, toJSONString);
+        } catch (AmqpException e) {
+            e.printStackTrace();
+            return new ResponseResult(CommonCode.FAIL);
+        }
 
         return new ResponseResult(CommonCode.SUCCESS);
     }
 
     //校验文件
-    private boolean checkFileMd5(File mergeFile,String md5){
+    private boolean checkFileMd5(File mergeFile, String md5) {
 
         try {
             //创建文件输入流
@@ -199,7 +243,7 @@ public class MediaUploadService {
             String md5Hex = DigestUtils.md5Hex(inputStream);
 
             //和传入的md5比较
-            if(md5.equalsIgnoreCase(md5Hex)){
+            if (md5.equalsIgnoreCase(md5Hex)) {
                 return true;
             }
         } catch (Exception e) {
@@ -209,6 +253,7 @@ public class MediaUploadService {
         return false;
 
     }
+
     //合并文件
     private File mergeFile(List<File> chunkFileList, File mergeFile) {
         try {
@@ -224,7 +269,7 @@ public class MediaUploadService {
             Collections.sort(chunkFileList, new Comparator<File>() {
                 @Override
                 public int compare(File o1, File o2) {
-                    if(Integer.parseInt(o1.getName())>Integer.parseInt(o2.getName())){
+                    if (Integer.parseInt(o1.getName()) > Integer.parseInt(o2.getName())) {
                         return 1;
                     }
                     return -1;
@@ -232,13 +277,13 @@ public class MediaUploadService {
                 }
             });
             //创建一个写对象
-            RandomAccessFile raf_write = new RandomAccessFile(mergeFile,"rw");
+            RandomAccessFile raf_write = new RandomAccessFile(mergeFile, "rw");
             byte[] b = new byte[1024];
-            for(File chunkFile:chunkFileList){
-                RandomAccessFile raf_read = new RandomAccessFile(chunkFile,"r");
+            for (File chunkFile : chunkFileList) {
+                RandomAccessFile raf_read = new RandomAccessFile(chunkFile, "r");
                 int len = -1;
-                while ((len = raf_read.read(b))!=-1){
-                    raf_write.write(b,0,len);
+                while ((len = raf_read.read(b)) != -1) {
+                    raf_write.write(b, 0, len);
                 }
                 raf_read.close();
             }
