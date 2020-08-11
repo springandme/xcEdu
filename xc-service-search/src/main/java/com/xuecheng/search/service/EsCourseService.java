@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -65,8 +66,8 @@ public class EsCourseService {
         if (StringUtils.isNotEmpty(courseSearchParam.getKeyword())) {
             MultiMatchQueryBuilder multiMatchQueryBuilder =
                     QueryBuilders.multiMatchQuery(courseSearchParam.getKeyword(), "name", "description", "teachplan")
-                    .minimumShouldMatch("70%")
-                    .field("name", 10);
+                            .minimumShouldMatch("70%")
+                            .field("name", 10);
             boolQueryBuilder.must(multiMatchQueryBuilder);
         }
         if (StringUtils.isNotEmpty(courseSearchParam.getMt())) {
@@ -174,8 +175,64 @@ public class EsCourseService {
         }
 
         queryResult.setList(list);
-        QueryResponseResult<CoursePub> queryResponseResult = new QueryResponseResult<CoursePub>(CommonCode.SUCCESS, queryResult);
+        QueryResponseResult<CoursePub> queryResponseResult = new QueryResponseResult<CoursePub>(CommonCode.SUCCESS,
+                queryResult);
 
         return queryResponseResult;
+    }
+
+    /**
+     * 使用ES的客户端向ES请求查询
+     *
+     * @param courseId 课程id
+     * @return JSON数据
+     */
+    public Map<String, CoursePub> getAll(String courseId) {
+        // 创建搜索请求对象
+        SearchRequest searchRequest = new SearchRequest(index);
+        // 设置搜索类型
+        searchRequest.types(type);
+        // 定义SearchSourceBuilder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        // 设置使用termQuery,精准查询
+        searchSourceBuilder.query(QueryBuilders.termsQuery("id", courseId));
+        // 过滤源字段,不用设置源字段,取出所有字段
+//        searchSourceBuilder.fetchSource();
+        //
+        searchRequest.source(searchSourceBuilder);
+
+        HashMap<String, CoursePub> map = new HashMap<>();
+        try {
+            // 执行搜索
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
+            SearchHits hits = searchResponse.getHits();
+            SearchHit[] searchHits = hits.getHits();
+            for (SearchHit hit : searchHits) {
+                // 最终要返回的课程信息
+                CoursePub coursePub = new CoursePub();
+                // 获取源文档的内容
+                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                // 课程id
+                String id = (String) sourceAsMap.get("id");
+                coursePub.setId(id);
+                String name = (String) sourceAsMap.get("name");
+                String grade = (String) sourceAsMap.get("grade");
+                String charge = (String) sourceAsMap.get("charge");
+                String pic = (String) sourceAsMap.get("pic");
+                String description = (String) sourceAsMap.get("description");
+                String teachplan = (String) sourceAsMap.get("teachplan");
+                coursePub.setName(name);
+                coursePub.setGrade(grade);
+                coursePub.setCharge(charge);
+                coursePub.setPic(pic);
+                coursePub.setDescription(description);
+                coursePub.setTeachplan(teachplan);
+                map.put(id, coursePub);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return map;
     }
 }

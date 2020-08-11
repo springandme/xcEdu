@@ -1,5 +1,6 @@
 package com.xuecheng.manage_course.service;
 
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.xuecheng.framework.domain.cms.CmsPage;
@@ -27,6 +28,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,6 +67,12 @@ public class CourseService {
 
     @Autowired
     private TeachPlanMediaRepository teachPlanMediaRepository;
+
+    @Autowired
+    private CoursePubRepository coursePubRepository;
+
+    @Autowired
+    private TeachplanMediaPubRepository teachplanMediaPubRepository;
 
     @Value("${course‐publish.dataUrlPre}")
     private String publish_dataUrlPre;
@@ -514,17 +524,119 @@ public class CourseService {
             return new CoursePublishResult(CommonCode.FAIL, null);
         }
 
-        //保存课程索引信息
+        // 保存课程索引信息
+        // 先创建一个coursePub对象
+        CoursePub coursePub = this.createCoursePub(courseId);
+        // 想数据库保存课程索引信息
+        CoursePub newCoursePub = this.saveCoursePub(courseId, coursePub);
+        if (newCoursePub == null) {
+            //创建课程索引信息失败
+            ExceptionCast.cast(CommonCode.FAIL);
+        }
+        // 缓存课程信息 ...
 
-        //缓存课程信息
+        // 向teachplanMedia中保存课程媒资信息
+        this.saveTeachplanMediaPub(courseId);
 
-        //得到页面的url
+        // 得到页面的url
         String pageUrl = postPageResult.getPageUrl();
 
         return new CoursePublishResult(CommonCode.SUCCESS, pageUrl);
     }
 
-    //
+
+    /**
+     * 向teachplanMedia中保存课程媒资信息,先删除,后添加
+     *
+     * @param courseId 课程id
+     */
+    private void saveTeachplanMediaPub(String courseId) {
+        // 先删除teachplanMediaPub的数据
+        long num = teachplanMediaPubRepository.deleteByCourseId(courseId);
+        // 从teachplanMedia中查询
+        List<TeachplanMedia> teachplanMediaList = teachPlanMediaRepository.findByCourseId(courseId);
+        List<TeachplanMediaPub> teachplanMediaPubList = new ArrayList<>();
+        // 将teachplanMediaList中的数据放到teachplanMediaPubList中
+        for (TeachplanMedia teachplanMedia : teachplanMediaList) {
+            TeachplanMediaPub teachplanMediaPub = new TeachplanMediaPub();
+            BeanUtils.copyProperties(teachplanMedia, teachplanMediaPub);
+            // 添加时间戳
+            teachplanMediaPub.setTimestamp(new Date());
+            teachplanMediaPubList.add(teachplanMediaPub);
+        }
+        // 添加到数据库中
+        teachplanMediaPubRepository.saveAll(teachplanMediaPubList);
+    }
+
+    /**
+     * 更新CoursePub
+     *
+     * @param courseId  课程id
+     * @param coursePub 课程发布信息
+     * @return coursePub
+     */
+    private CoursePub saveCoursePub(String courseId, CoursePub coursePub) {
+        if (StringUtils.isEmpty(courseId)) {
+            ExceptionCast.cast(CommonCode.INVALID_PARAM);
+        }
+        CoursePub coursePubNew = null;
+        Optional<CoursePub> optionalCoursePub = coursePubRepository.findById(courseId);
+        if (optionalCoursePub.isPresent()) {
+            coursePubNew = optionalCoursePub.get();
+        }
+        if (coursePubNew == null) {
+            coursePubNew = new CoursePub();
+        }
+        //根据课程id查询coursePub
+        BeanUtils.copyProperties(coursePub, coursePubNew);
+        // 设置主键
+        coursePubNew.setId(courseId);
+        // 更新时间戳为最新时间,给logStash使用
+        coursePubNew.setTimestamp(new Date());
+        // 发布时间
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+        String date = simpleDateFormat.format(new Date());
+        coursePubNew.setPubTime(date);
+        coursePubRepository.save(coursePubNew);
+
+        return coursePubNew;
+    }
+
+    /**
+     * 创建coursePub对象
+     *
+     * @param courseId 课程id
+     * @return CoursePub
+     */
+    private CoursePub createCoursePub(String courseId) {
+        CoursePub coursePub = new CoursePub();
+        coursePub.setId(courseId);
+        //基本信息
+        Optional<CourseBase> optionalCourseBase = courseBaseRepository.findById(courseId);
+        if (optionalCourseBase.isPresent()) {
+            CourseBase courseBase = optionalCourseBase.get();
+            BeanUtils.copyProperties(courseBase, coursePub);
+        }
+        //课程图片
+        Optional<CoursePic> optionalCoursePic = coursePicRepository.findById(courseId);
+        if (optionalCoursePic.isPresent()) {
+            CoursePic coursePic = optionalCoursePic.get();
+            BeanUtils.copyProperties(coursePic, coursePub);
+        }
+        //营销信息
+        Optional<CourseMarket> optionalCourseMarket = courseMarketRepository.findById(courseId);
+        if (optionalCourseMarket.isPresent()) {
+            CourseMarket courseMarket = optionalCourseMarket.get();
+            BeanUtils.copyProperties(courseMarket, coursePub);
+        }
+        // 课程计划
+        TeachplanNode teachplanNode = teachplanMapper.selectList(courseId);
+        //将课程计划转出json
+        String jsonString = JSON.toJSONString(teachplanNode);
+        coursePub.setTeachplan(jsonString);
+
+        return coursePub;
+    }
 
     /**
      * 更改基本课程状态,为已发布,数据字典状态码,202002
