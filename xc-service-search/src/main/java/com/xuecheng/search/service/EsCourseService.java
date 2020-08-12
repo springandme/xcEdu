@@ -1,6 +1,7 @@
 package com.xuecheng.search.service;
 
 import com.xuecheng.framework.domain.course.CoursePub;
+import com.xuecheng.framework.domain.course.TeachplanMediaPub;
 import com.xuecheng.framework.domain.search.CourseSearchParam;
 import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.QueryResponseResult;
@@ -41,6 +42,13 @@ public class EsCourseService {
     private String type;
     @Value("${xuecheng.course.source_field}")
     private String source_field;
+
+    @Value("${xuecheng.media.index}")
+    private String media_index;
+    @Value("${xuecheng.media.type}")
+    private String media_type;
+    @Value("${xuecheng.media.source_field}")
+    private String media_source_field;
 
     @Autowired
     RestHighLevelClient restHighLevelClient;
@@ -195,7 +203,7 @@ public class EsCourseService {
         // 定义SearchSourceBuilder
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         // 设置使用termQuery,精准查询
-        searchSourceBuilder.query(QueryBuilders.termsQuery("id", courseId));
+        searchSourceBuilder.query(QueryBuilders.termQuery("id", courseId));
         // 过滤源字段,不用设置源字段,取出所有字段
 //        searchSourceBuilder.fetchSource();
         //
@@ -234,5 +242,67 @@ public class EsCourseService {
             e.printStackTrace();
         }
         return map;
+    }
+
+    /**
+     * 根据多个课程计划id查询课程媒资信息
+     * 补充: QueryBuilders.termsQuery(String name, Collection<?> values) 第二个参数可以放集合/数组,
+     * ---即是可以匹配多个值 而termQuery只能匹配一个值
+     *
+     * @param teachplanIds 课程计划id数组
+     * @return 课程计划
+     */
+    public QueryResponseResult<TeachplanMediaPub> getMedia(String[] teachplanIds) {
+        // 创建搜索请求对象
+        SearchRequest searchRequest = new SearchRequest(media_index);
+        // 设置搜索类型
+        searchRequest.types(media_type);
+        // 定义SearchSourceBuilder
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        // 设置使用termsQuery,根据多个id精准查询
+        searchSourceBuilder.query(QueryBuilders.termsQuery("teachplan_id", teachplanIds));
+        // 过滤源字段
+        String[] includes = media_source_field.split(",");
+        searchSourceBuilder.fetchSource(includes, new String[]{});
+        searchRequest.source(searchSourceBuilder);
+
+        SearchResponse response = null;
+        ArrayList<TeachplanMediaPub> teachplanMediaPubList = new ArrayList<>();
+        long totalHits = 0;
+        try {
+            // 执行搜索
+            response = restHighLevelClient.search(searchRequest);
+            SearchHits hits = response.getHits();
+            //
+            totalHits = hits.getTotalHits();
+            SearchHit[] searchHits = hits.getHits();
+            for (SearchHit hit : searchHits) {
+                TeachplanMediaPub teachplanMediaPub = new TeachplanMediaPub();
+                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                // 取出课程计划媒资信息
+                String courseId = (String) sourceAsMap.get("courseid");
+                String mediaId = (String) sourceAsMap.get("media_id");
+                String teachplanId = (String) sourceAsMap.get("teachplan_id");
+                String mediaFileOriginalName = (String) sourceAsMap.get("media_fileoriginalname");
+                String mediaUrl = (String) sourceAsMap.get("media_url");
+
+                teachplanMediaPub.setCourseId(courseId);
+                teachplanMediaPub.setTeachplanId(teachplanId);
+                teachplanMediaPub.setMediaId(mediaId);
+                teachplanMediaPub.setMediaFileOriginalName(mediaFileOriginalName);
+                teachplanMediaPub.setMediaUrl(mediaUrl);
+
+                teachplanMediaPubList.add(teachplanMediaPub);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 数据集合
+        QueryResult<TeachplanMediaPub> queryResult = new QueryResult<>();
+        queryResult.setList(teachplanMediaPubList);
+        queryResult.setTotal(totalHits);
+
+        return new QueryResponseResult<>(CommonCode.SUCCESS, queryResult);
     }
 }
