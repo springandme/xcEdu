@@ -1,8 +1,6 @@
 server:
   port: 31200
 spring:
-  profiles:
-    active: dev # 这样，在启动服务时，服务器就会通过application.yml文件去调用application-dev.yml文件。同理，若active: prod,那么服务在启动时，服务器就会调用application-prod.yml文件。也就是说，在开发环境时，只需将application.yml配置文件配置为"dev",而生产环境时，只需将“dev”改为“prod”就可以了。
   application:
     name: xc-service-manage-course
   datasource:
@@ -45,4 +43,4 @@ course‐publish:
   pagePhysicalPath: /course/detail/
   dataUrlPre: http://localhost:31200/course/courseview/
 oauth2:
-  urlMatchers: /v2/api-docs,/swagger-resources/configuration/ui,/swagger-resources,/swagger-resources/configuration/security,/swagger-ui.html,/webjars/**,/**
+  urlMatchers: /v2/api-docs,/swagger-resources/configuration/ui,/swagger-resources,/swagger-resources/configuration/security,/swagger-ui.html,/webjars/**
