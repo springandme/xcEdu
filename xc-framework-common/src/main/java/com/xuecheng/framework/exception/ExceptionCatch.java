@@ -30,13 +30,24 @@ public class ExceptionCatch {
     //定义map的builder对象,去构建ImmutableMap
     protected static ImmutableMap.Builder<Class<? extends Throwable>, ResultCode> builder = ImmutableMap.builder();
 
+
     static {
         //定义异常类型所对应的错误代码
         builder.put(HttpMessageNotReadableException.class, CommonCode.INVALID_PARAM);
     }
 
 
-    //捕获CustomException此类异常
+    // 捕获CustomException此类异常
+    @ExceptionHandler(CustomException.class)
+    @ResponseBody
+    public ResponseResult customException(CustomException customException) {
+        //记录日志
+        LOGGER.error("catch exception:{}", customException.getMessage());
+        ResultCode resultCode = customException.getResultCode();
+        return new ResponseResult(resultCode);
+    }
+
+    // 捕获Exception此类异常
     @ExceptionHandler(Exception.class)
     @ResponseBody  //将java对象错误信息转换为json
     public ResponseResult exception(Exception exception) {
