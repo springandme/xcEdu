@@ -131,6 +131,15 @@ public class AuthService {
                 responseBody.get("access_token") == null ||
                 responseBody.get("refresh_token") == null ||
                 responseBody.get("jti") == null) {
+            // 解析spring security返回的错误信息
+            if (responseBody != null && responseBody.get("error_description") != null) {
+                String error_description = (String) responseBody.get("error_description");
+                if (error_description.indexOf("UserDetailsService returned null") >= 0) {
+                    ExceptionCast.cast(AuthCode.AUTH_ACCOUNT_NOTEXISTS);
+                } else if (error_description.indexOf("坏的凭证") >= 0) {
+                    ExceptionCast.cast(AuthCode.AUTH_CREDENTIAL_ERROR);
+                }
+            }
             return null;
         }
 
@@ -178,5 +187,38 @@ public class AuthService {
         // 进行base64编码
         byte[] encode = Base64Utils.encode(string.getBytes());
         return "Basic " + new String(encode);
+    }
+
+    /**
+     * 根据token从Redis查询令牌
+     *
+     * @param access_token 短令牌
+     * @return AuthToken
+     */
+    public AuthToken getUserToken(String access_token) {
+        String key = "user_token: " + access_token;
+        // 从Redis中取到令牌信息
+        String value = stringRedisTemplate.opsForValue().get(key);
+        // 转成对象
+        try {
+            AuthToken authToken = JSON.parseObject(value, AuthToken.class);
+            return authToken;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * 删除token
+     *
+     * @param access_token 短令牌
+     * @return expire小于0表示删除成功
+     */
+    public boolean delToken(String access_token) {
+        String key = "user_token: " + access_token;
+        // 从Redis中取到令牌信息
+        Boolean delete = stringRedisTemplate.delete(key);
+        return delete;
     }
 }

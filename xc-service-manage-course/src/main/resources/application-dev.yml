@@ -43,4 +43,4 @@ course‐publish:
   pagePhysicalPath: /course/detail/
   dataUrlPre: http://localhost:31200/course/courseview/
 oauth2:
-  urlMatchers: /v2/api-docs,/swagger-resources/configuration/ui,/swagger-resources,/swagger-resources/configuration/security,/swagger-ui.html,/webjars/**
+  urlMatchers: /v2/api-docs,/swagger-resources/configuration/ui,/swagger-resources,/swagger-resources/configuration/security,/swagger-ui.html,/webjars/**,/course/coursepic/list/**
