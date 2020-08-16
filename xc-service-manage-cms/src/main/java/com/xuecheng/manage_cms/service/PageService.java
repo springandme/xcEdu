@@ -36,11 +36,18 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -401,8 +408,18 @@ public class PageService {
             //页面dataUrl为空
             ExceptionCast.cast(CmsCode.CMS_GENERATEHTML_DATAURLISNULL);
         }
+        // 获取当前请求的request对象,从该对象中取出当前请求header信息里面包含的authorization字段,该该字段内电邮我们认证需要的jwt令牌信息
+        //通过获取当前请求的request对象来取出jwt认证信息,并且传递到下一个请求中
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = attributes.getRequest();
+        String jwt = request.getHeader("authorization");
+        // 使用LinkedMultiValueMap存储多个header信息
+        LinkedMultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("authorization", jwt);
+        HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(headers);
+
         //通过restTemplate请求dataUrl获取数据
-        ResponseEntity<Map> forEntity = restTemplate.getForEntity(dataUrl, Map.class);
+        ResponseEntity<Map> forEntity = restTemplate.exchange(dataUrl, HttpMethod.GET, httpEntity, Map.class);
         return forEntity.getBody();
     }
 

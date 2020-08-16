@@ -1,4 +1,4 @@
-package com.xuecheng.manage_course.config;
+package com.xuecheng.manage_cms.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * @ClassName ResourceServerConfig
  * @Description TODO
  * @Author liushi
- * @Date 2020/8/13 15:51
+ * @Date 2020/8/16 15:51
  * @Version V1.0
  **/
 @Configuration

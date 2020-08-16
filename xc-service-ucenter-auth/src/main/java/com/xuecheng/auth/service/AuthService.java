@@ -134,9 +134,9 @@ public class AuthService {
             // 解析spring security返回的错误信息
             if (responseBody != null && responseBody.get("error_description") != null) {
                 String error_description = (String) responseBody.get("error_description");
-                if (error_description.indexOf("UserDetailsService returned null") >= 0) {
+                if (error_description.contains("UserDetailsService returned null")) {
                     ExceptionCast.cast(AuthCode.AUTH_ACCOUNT_NOTEXISTS);
-                } else if (error_description.indexOf("坏的凭证") >= 0) {
+                } else if (error_description.contains("坏的凭证")) {
                     ExceptionCast.cast(AuthCode.AUTH_CREDENTIAL_ERROR);
                 }
             }

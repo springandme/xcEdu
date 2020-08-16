@@ -54,7 +54,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         // userExt.setUsername("itcast");
         // userExt.setPassword(new BCryptPasswordEncoder().encode("123"));
         // 权限先用静态的
-        userExt.setPermissions(new ArrayList<XcMenu>());
+        // userExt.setPermissions(new ArrayList<XcMenu>());
 
         //取出正确密码（hash值）
         String password = userExt.getPassword();
@@ -63,10 +63,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         //用户权限，这里暂时使用静态数据，最终会从数据库读取
         //从数据库获取权限
         List<XcMenu> permissions = userExt.getPermissions();
+        if (permissions == null) {
+            permissions = new ArrayList<>();
+        }
         List<String> user_permission = new ArrayList<>();
         permissions.forEach(item -> user_permission.add(item.getCode()));
-//        user_permission.add("course_get_baseinfo");
-//        user_permission.add("course_find_pic");
+        // 使用静态的权限表示用户所拥有的权限
+        // user_permission.add("course_get_baseinfo"); // 查询课程信息
+        // user_permission.add("course_pic_list");     // 图片查询
         String user_permission_string = StringUtils.join(user_permission.toArray(), ",");
         UserJwt userDetails = new UserJwt(username,
                 password,

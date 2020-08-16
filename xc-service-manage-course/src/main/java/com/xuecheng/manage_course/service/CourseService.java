@@ -183,16 +183,21 @@ public class CourseService {
     /**
      * 课程列表查询,并且带有分页效果
      * time:7.28没有处理条件查询,和图片查询
+     * time:8.16完成我的课程细粒度授权
      *
      * @param page              页码,从1开始
-     * @param size              每页显示的几率
+     * @param size              每页显示的记录
+     * @param companyId         公司id
      * @param courseListRequest 查询条件
      * @return QueryResponseResult
      */
-    public QueryResponseResult<CourseInfo> findCourseList(int page, int size, CourseListRequest courseListRequest) {
+    public QueryResponseResult<CourseInfo> findCourseList(int page, int size, String companyId,
+                                                          CourseListRequest courseListRequest) {
         if (courseListRequest == null) {
             courseListRequest = new CourseListRequest();
         }
+        // 将公司id参数传入dao
+        courseListRequest.setCompanyId(companyId);
         if (page <= 0) {
             page = 0;
         }

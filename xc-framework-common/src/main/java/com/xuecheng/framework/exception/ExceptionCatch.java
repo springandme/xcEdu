@@ -24,12 +24,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class ExceptionCatch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionCatch.class);
-
-    //定义map,配置异常类型所对应的错误代码
-    private static ImmutableMap<Class<? extends Throwable>, ResultCode> EXCEPTIONS;
     //定义map的builder对象,去构建ImmutableMap
     protected static ImmutableMap.Builder<Class<? extends Throwable>, ResultCode> builder = ImmutableMap.builder();
-
+    //定义map,配置异常类型所对应的错误代码
+    private static ImmutableMap<Class<? extends Throwable>, ResultCode> EXCEPTIONS;
 
     static {
         //定义异常类型所对应的错误代码
@@ -41,6 +39,8 @@ public class ExceptionCatch {
     @ExceptionHandler(CustomException.class)
     @ResponseBody
     public ResponseResult customException(CustomException customException) {
+        // 把错误信息打印出来
+        customException.printStackTrace();
         //记录日志
         LOGGER.error("catch exception:{}", customException.getMessage());
         ResultCode resultCode = customException.getResultCode();
@@ -51,6 +51,8 @@ public class ExceptionCatch {
     @ExceptionHandler(Exception.class)
     @ResponseBody  //将java对象错误信息转换为json
     public ResponseResult exception(Exception exception) {
+        // 把错误信息打印出来
+        exception.printStackTrace();
         //记录日志
         LOGGER.error("catch exception:{}", exception.getMessage());
         if (EXCEPTIONS == null) {

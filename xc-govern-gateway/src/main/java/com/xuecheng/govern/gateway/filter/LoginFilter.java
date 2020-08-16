@@ -6,10 +6,13 @@ import com.netflix.zuul.context.RequestContext;
 import com.netflix.zuul.exception.ZuulException;
 import com.xuecheng.framework.model.response.CommonCode;
 import com.xuecheng.framework.model.response.ResponseResult;
+import com.xuecheng.govern.gateway.service.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * @ClassName LoginFilterTest
@@ -20,6 +23,9 @@ import javax.servlet.http.HttpServletRequest;
  **/
 @Component
 public class LoginFilter extends ZuulFilter {
+
+    @Autowired
+    private AuthService authService;
 
     /**
      * 过滤器类型
@@ -60,8 +66,11 @@ public class LoginFilter extends ZuulFilter {
     }
 
     /**
-     * 过滤器的业务逻辑
-     * 测试-->过滤所有请求,判断头部信息是否有Authorization,如果没有则拒绝访问,否则转发到微服务
+     * 过滤器的业务逻辑-->实现网关连接Redis校验令牌
+     * -
+     * 从cookie查询用户身份令牌是否存在,不存在则拒绝访问
+     * 从http header查询jwt令牌是否存在,不存在则拒绝访问
+     * 从Redis查询user_token令牌是否过期,过期则拒绝访问
      *
      * @return response
      * @throws ZuulException
@@ -70,32 +79,48 @@ public class LoginFilter extends ZuulFilter {
     public Object run() throws ZuulException {
         RequestContext requestContext = RequestContext.getCurrentContext();
         HttpServletRequest request = requestContext.getRequest();
-        // 取出头部信息Authorization
-        String authorization = request.getHeader("Authorization");
-        // 判断用户的请求是否带有Authorization字段,如果没有则表示未认证用户
-        if (StringUtils.isEmpty(authorization)) {
+        HttpServletResponse response = requestContext.getResponse();
+        // 取出cookie中的身份令牌
+        String access_token = authService.getTokenFromCookie(request);
+        if (StringUtils.isEmpty(access_token)) {
             // 拒绝访问
-            requestContext.setSendZuulResponse(false);
-            // 设置响应装填吗
-            requestContext.setResponseStatusCode(200);
-            //
-            ResponseResult responseResult = new ResponseResult(CommonCode.UNAUTHENTICATED);
-            // 转成JSON
-            String toJSONString = JSON.toJSONString(responseResult);
-            requestContext.setResponseBody(toJSONString);
-            // 设置返回类型为application/json
-            requestContext.getResponse().setContentType("application/json;charset=utf-8");
+            this.access_denied();
+            return null;
+        }
+        // 从header中取jwt
+        String jwt = authService.getJwtFromHeader(request);
+        if (StringUtils.isEmpty(jwt)) {
+            // 拒绝访问
+            this.access_denied();
+            return null;
+        }
+        // 从Redis取出jwt的过期时间
+        long expire = authService.getJwtFromRedis(access_token);
+        if (expire < 0) {
+            // 拒绝访问
+            this.access_denied();
             return null;
         }
         return null;
     }
 
-    // 从头信息取出jwt令牌
 
+    /**
+     * 拒绝访问
+     */
+    private void access_denied() {
+        RequestContext requestContext = RequestContext.getCurrentContext();
+        // 拒绝访问
+        requestContext.setSendZuulResponse(false);
+        // 设置响应代码
+        requestContext.setResponseStatusCode(200);
+        // 构建响应的信息
+        ResponseResult responseResult = new ResponseResult(CommonCode.UNAUTHENTICATED);
+        // 转成JSON
+        String toJSONString = JSON.toJSONString(responseResult);
+        requestContext.setResponseBody(toJSONString);
+        // 设置返回类型为application/json
+        requestContext.getResponse().setContentType("application/json;charset=utf-8");
+    }
 
-    // 从cookie取出token
-
-    // 从Redis取出jwt令牌
-
-    // 拒绝访问
 }

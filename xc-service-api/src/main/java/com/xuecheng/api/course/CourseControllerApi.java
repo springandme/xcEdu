@@ -59,4 +59,7 @@ public interface CourseControllerApi {
 
     @ApiOperation("保存课程计划与媒资文件关联")
     ResponseResult saveMedia(TeachplanMedia teachplanMedia);
+
+    // @ApiOperation("查询指定公司下的所有课程")
+    // QueryResponseResult<CourseInfo> findCourseListByCompany(int page, int size, CourseListRequest courseListRequest);
 }

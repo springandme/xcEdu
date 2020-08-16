@@ -43,7 +43,8 @@ public class TestFastDFS {
             // group1/M00/00/00/rBqoQF8jz8CANMPdAAKEugxHu7A371.png
             // "F:\\teach\\xcEdu\\xcEduUI0001\\xc-ui-pc-static-portal\\img\\widget-myImg.jpg";
             // group1/M00/00/00/rBqoQF8j1jOAXxvYAAAWh_Cdpwo511.jpg
-            String filePath = "F:\\teach\\xcEdu\\xcEduUI0001\\xc-ui-pc-static-portal\\img\\widget-myImg.jpg";
+            // C:\Users\1111\Desktop\计组实验\pic.jpg
+            String filePath = "C:\\Users\\1111\\Desktop\\计组实验\\pic.jpg";
             //上传成功后拿到文件id
             String upload_file1Id = storageClient1.upload_file1(filePath, "jpg", null);
             //group1/M00/00/00/rBqoQF8hR_mAKL76AADWY6U4-pM107.jpg
