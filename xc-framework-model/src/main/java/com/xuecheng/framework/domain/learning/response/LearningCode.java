@@ -13,7 +13,8 @@ import lombok.ToString;
 @ToString
 public enum LearningCode implements ResultCode {
 
-    LEARNING_GET_MEDIA_ERROR(false, 23001, "学习中心获取媒资信息错误！");
+    LEARNING_GET_MEDIA_ERROR(false, 23001, "学习中心获取媒资信息错误！"),
+    CHOOSE_COURSE_TASK_IS_NUll(false, 23002, "添加选课的用户id为空！");
 
     //操作代码
     boolean success;

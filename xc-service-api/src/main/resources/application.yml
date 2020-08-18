@@ -1,0 +1,8 @@
+# 针对Swagger的资源接口,SwaggerBootstrapUi提供了简单的Basic认证功能
+# 切记swagger.production  不可设置为true，否则将屏蔽所有资源
+swagger:
+  production: false
+  basic:
+    enable: true
+    username: root
+    password: root

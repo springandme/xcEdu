@@ -13,6 +13,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 //
 @Configuration
 @EnableSwagger2
+// @EnableSwaggerBootstrapUI // 此时访问需要通过用户密码才可进行访问
 public class Swagger2Configuration {
     @Bean
     public Docket createRestApi() {
